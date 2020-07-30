@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div>
+  {{ macros.setting_global_scheduler_button(arg['scheduler'], arg['is_running']) }}
+  <form id='setting' name='setting'>
+  {{ macros.setting_input_int('schedulerInterval', '스케쥴링 실행 주기', value=arg['schedulerInterval'], min='1', placeholder='10', desc='minute 단위') }}
+  {{ macros.setting_checkbox('auto_start', '시작시 자동실행', value=arg['auto_start'], desc='On : 시작시 자동으로 사용 설정합니다.') }}
+  {{ macros.setting_input_text('redirect_uri', '리다이렉트 URI', value=arg['redirect_uri'], desc=['리다이렉트 URI', '구글 클라이언트ID -> 승인된 리디렉션 URI']) }}
+  {{ macros.setting_input_text('client_id', '클라이언트ID', value=arg['client_id'], desc=['클라이언트ID']) }}
+  {{ macros.setting_input_text_and_buttons('client_secret', '클라이언트 Secret', [['auth_btn', '권한요청']], value=arg['client_secret'], desc=['토큰 새로 가져오지 못한 경우 재인증해야함']) }}
+  {{ macros.setting_button([['last_auth_btn', '최종인증']]) }}
+  {{ macros.setting_input_text('access_token', '엑세스 토큰', value=arg['access_token'], desc=['토큰기한은 1시간, 여유있게 50분이하로 할 것']) }}
+  {{ macros.setting_input_text('refresh_token', '토큰 갱신용 토큰', value=arg['refresh_token'], desc=['토큰 갱신용 토큰']) }}
+    <div id="expires_in_div" class="row" style="padding-top: 10px; padding-bottom:10px; align-items: center; display:none;">
+        <div class="col-sm-3 set-left">
+            <strong>토큰 갱신 결과 : </strong>
+        </div>
+        <div class="col-sm-9">
+            <div id="expires_in" class="input-group col-sm-9"></div>
+        </div>
+    </div>
+  {{ macros.setting_button([['token_refresh_btn', '토큰 새로고침']]) }}
+  {{ macros.setting_input_text('upload_path', '업로드 파일 경로', value=arg['upload_path'], desc=['업로드 파일 경로', 'sjva/upload']) }}
+  {{ macros.setting_input_text('complete_path', '업로드 완료 후 이동 경로', value=arg['complete_path'], desc=['업로드 완료 후 이동 경로', 'sjva/upload/complete']) }}
+  {{ macros.setting_button([['global_setting_save_btn', '저장']]) }}
+  </form>
+  {{ macros.m_hr() }}
+  {{ macros.setting_button([['global_one_execute_btn', '1회 실행']], left='1회 실행' ) }}
+</div>
+
+<script type="text/javascript">
+var package_name = "{{arg['package_name'] }}";
+
+//토큰 조회를 위한 임시코드
+var tempAuthCode = "";
+
+$(document).ready(function (){
+    thisUrl = location.href;
+	if(thisUrl.indexOf("code=") > -1){
+		tempAuthCode = thisUrl.substring(thisUrl.indexOf("code=")+5, thisUrl.indexOf("&"));
+		tempAuthCode = decodeURIComponent(tempAuthCode);
+	}
+});
+
+$("#auth_btn").click(function (){
+    var auth_url = "https://accounts.google.com/o/oauth2/auth?";
+    auth_url += "client_id="+$("#client_id").val();
+    auth_url += "&redirect_uri="+encodeURI($("#redirect_uri").val());
+    auth_url += "&scope=https://www.googleapis.com/auth/youtube.upload";
+    auth_url += "&response_type=code";
+    auth_url += "&prompt=consent"
+    auth_url += "&access_type=offline";
+    window.open(auth_url, "google_auth", "width=700, height=900");
+});
+
+$("#last_auth_btn").click(function (e){
+    e.preventDefault();
+    
+    var auth_url = "https://accounts.google.com/o/oauth2/token";
+    $.ajax({
+        type:"POST",
+        url:auth_url,
+        dataType : 'json',
+        data: {
+            code:tempAuthCode,
+            client_id:$("#client_id").val(),
+            client_secret:$("#client_secret").val(),
+            redirect_uri:encodeURI($("#redirect_uri").val()),
+            grant_type:'authorization_code'
+        },
+        dataType: "json",
+        contentType:"application/x-www-form-urlencoded; charset=utf-8",
+        success:function(data) {
+            $("#access_token").val(data.access_token);
+            $("#refresh_token").val(data.refresh_token);
+        },
+        error: function(jqXHR, exception, errorstr) {
+            alert("토큰 조회 실패");
+            console.log(jqXHR);
+        }
+    });
+});
+
+$("#token_refresh_btn").click(function (e){
+    e.preventDefault();
+    var auth_url = "https://accounts.google.com/o/oauth2/token";
+    
+    $.ajax({
+        type:"POST",
+        url:auth_url,
+        dataType : 'json',
+        data: {
+            client_id:$("#client_id").val(),
+            client_secret:$("#client_secret").val(),
+            refresh_token:$("#refresh_token").val(),
+            redirect_uri:encodeURI($("#redirect_uri").val()),
+            grant_type:'refresh_token'
+        },
+        dataType: "json",
+        contentType:"application/x-www-form-urlencoded; charset=utf-8",
+        success:function(data) {
+            $("#access_token").val(data.access_token);
+            $("#expires_in").text(data.expires_in+"초  (최대 3600초)")
+            $("#expires_in_div").show();
+        },
+        error: function(jqXHR, exception, errorstr) {
+            alert("토큰 조회 실패");
+            console.log(jqXHR);
+        }
+    });
+});
+
+
+</script>
+{% endblock %}
