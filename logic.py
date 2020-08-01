@@ -31,8 +31,11 @@ class Logic(object):
         'redirect_uri' : '',
 	    'client_id' : '',
         'client_secret' : '',
+        'api_key' : '',
         'access_token' : '',
         'refresh_token' : '',
+        'category_id' : '',
+        'privacy_status' : '',
 	    'upload_path' : '',
         'complete_path' : '',
 	    'schedulerInterval' : ''

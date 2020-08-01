@@ -57,6 +57,8 @@ class LogicNormal(object):
             client_secret = ModelSetting.get('client_secret')
             access_token = ModelSetting.get('access_token')
             refresh_token = ModelSetting.get('refresh_token')
+            category_id = ModelSetting.get('category_id')
+            privacy_status = ModelSetting.get('privacy_status')
             upload_path = ModelSetting.get('upload_path')
             complete_path = ModelSetting.get('complete_path')
             redirect_uri = ModelSetting.get('redirect_uri')
@@ -71,7 +73,7 @@ class LogicNormal(object):
             if client_id != '' and client_secret != '' and refresh_token != '' and upload_path != '' and complete_path != '' and redirect_uri != '':
                 logger.debug("=========== SCRIPT START ===========")
                 LogicNormal.refresh_token(client_id, client_secret, refresh_token, redirect_uri)
-                LogicNormal.youtube_upload(upload_path, complete_path, client_id, client_secret, refresh_token, redirect_uri)
+                LogicNormal.youtube_upload(upload_path, complete_path, client_id, client_secret, refresh_token, category_id, privacy_status)
                 logger.debug("=========== SCRIPT END ===========")
         except Exception as e:
             logger.error('Exception:%s', e)
@@ -100,8 +102,8 @@ class LogicNormal(object):
             json_data = json.loads(response.text)
             access_token = json_data["access_token"]
             expires_in = json_data["expires_in"]
-            logger.debug("new_access_token : %s", access_token)
-            logger.debug("expires_in : %s", expires_in)
+            #logger.debug("new_access_token : %s", access_token)
+            #logger.debug("expires_in : %s", expires_in)
             ModelSetting.set('access_token', access_token)
             LogicNormal.new_access_token = access_token
             LogicNormal.expires_at = expires_in
@@ -109,8 +111,9 @@ class LogicNormal(object):
 
 
     @staticmethod
-    def youtube_upload(upload_path, complete_path, client_id, client_secret, refresh_token, redirect_uri):
+    def youtube_upload(upload_path, complete_path, client_id, client_secret, refresh_token, category_id, privacy_status):
         logger.debug("=========== youtube_upload() START ===========")
+
         #전달받은 path 경로에 / 없는 경우 예외처리
         if upload_path.rfind("/")+1 != len(upload_path):
             upload_path = upload_path+'/'
@@ -151,22 +154,22 @@ class LogicNormal(object):
             if mvBool:
                 #파일이동처리
                 if os.path.isfile(upload_path+file):
-                    logger.debug("target file name : %s", file)
+                    #logger.debug("target file name : %s", file)
                     title_name = os.path.splitext(file)[0]
                     now = datetime.datetime.now()
                     nowDatetime = now.strftime('%Y-%m-%d_%H%M%S')
                     title_name += "_"+nowDatetime
-                    logger.debug("title_name : %s", title_name)
+                    #logger.debug("title_name : %s", title_name)
                     request = youtube.videos().insert(
                         part="snippet,status",
                         body={
                             "snippet": {
-                                "categoryId": "22",
+                                "categoryId": category_id,
                                 "description": "Description of uploaded video.",
                                 "title": title_name
                             },
                             "status": {
-                                "privacyStatus": "private"
+                                "privacyStatus": privacy_status
                             }
                         },
                         
@@ -178,8 +181,6 @@ class LogicNormal(object):
                     logger.debug("video.id : %s", response["id"])
                     #sucess upload -> file_move
                     shutil.move(upload_path+file, complete_path+file)
-                    #파일 업로드후 연속 업로드를 위한 토큰 갱신
-                    LogicNormal.refresh_token(client_id, client_secret, refresh_token, redirect_uri)
 
                     
         logger.debug("=========== youtube_upload() END ===========")

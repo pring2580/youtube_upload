@@ -9,6 +9,7 @@
   {{ macros.setting_input_text('redirect_uri', '리다이렉트 URI', value=arg['redirect_uri'], desc=['리다이렉트 URI', '구글 클라이언트ID -> 승인된 리디렉션 URI']) }}
   {{ macros.setting_input_text('client_id', '클라이언트ID', value=arg['client_id'], desc=['클라이언트ID']) }}
   {{ macros.setting_input_text_and_buttons('client_secret', '클라이언트 Secret', [['auth_btn', '권한요청']], value=arg['client_secret'], desc=['토큰 새로 가져오지 못한 경우 재인증해야함']) }}
+  {{ macros.setting_input_text('api_key', 'API_KEY', value=arg['api_key'], desc=['API_KEY']) }}
   {{ macros.setting_button([['last_auth_btn', '최종인증']]) }}
   {{ macros.setting_input_text('access_token', '엑세스 토큰', value=arg['access_token'], desc=['토큰기한은 1시간, 여유있게 50분이하로 할 것']) }}
   {{ macros.setting_input_text('refresh_token', '토큰 갱신용 토큰', value=arg['refresh_token'], desc=['토큰 갱신용 토큰']) }}
@@ -21,6 +22,31 @@
         </div>
     </div>
   {{ macros.setting_button([['token_refresh_btn', '토큰 새로고침']]) }}
+    <!-- 공개여부 -->
+    <div class="row" style="padding-top: 10px; padding-bottom: 10px; align-items: center;">
+        <div class="col-sm-3 set-left">
+            <strong>카테고리 : </strong>
+        </div>
+        <div class="col-sm-9">
+            <select id="category_id" name="category_id"></select>
+        </div>
+    </div>
+
+    <!-- 공개여부 -->
+    <div class="row" style="padding-top: 10px; padding-bottom: 10px; align-items: center;">
+        <div class="col-sm-3 set-left">
+            <strong>공개 여부 : </strong>
+        </div>
+        <div class="col-sm-9">
+            <select id="privacy_status" name="privacy_status">
+                <option value="private">비공개</option>
+                <option value="public">공개</option>
+                <option value="unlisted">unlisted</option>
+            </select>
+        </div>
+    </div>
+      
+  </select>
   {{ macros.setting_input_text('upload_path', '업로드 파일 경로', value=arg['upload_path'], desc=['업로드 파일 경로', 'sjva/upload']) }}
   {{ macros.setting_input_text('complete_path', '업로드 완료 후 이동 경로', value=arg['complete_path'], desc=['업로드 완료 후 이동 경로', 'sjva/upload/complete']) }}
   {{ macros.setting_button([['global_setting_save_btn', '저장']]) }}
@@ -33,7 +59,11 @@
 var package_name = "{{arg['package_name'] }}";
 
 //토큰 조회를 위한 임시코드
+var api_key = "{{arg['api_key'] }}";
+var category_id = "{{arg['category_id'] }}";
+var privacy_status = "{{arg['privacy_status'] }}";
 var tempAuthCode = "";
+
 
 $(document).ready(function (){
     thisUrl = location.href;
@@ -41,7 +71,45 @@ $(document).ready(function (){
 		tempAuthCode = thisUrl.substring(thisUrl.indexOf("code=")+5, thisUrl.indexOf("&"));
 		tempAuthCode = decodeURIComponent(tempAuthCode);
 	}
+
+    //api로 카테고리 조회
+    if(api_key){
+        setCategory(api_key)
+    }
+    
+    //DB 기준 공개여부 set
+    if(privacy_status){
+        $("#privacy_status").val(privacy_status);
+    }
 });
+
+function setCategory(api_key){
+    $.ajax({
+        type:"GET",
+        url:"https://www.googleapis.com/youtube/v3/videoCategories?part=snippet&regionCode=KR&key="+api_key,
+        dataType: "json",
+        success:function(data) {
+            var itemList = data.items;
+            var option = "";
+            for(var i=0; i<itemList.length; i++){
+                if(itemList[i].snippet.assignable){
+                    option += "<option value='"+itemList[i].id+"'>"
+                    option += itemList[i].snippet.title;
+                    option += "</option>"
+                }
+            }
+            $("#category_id").html(option);
+
+            if(category_id){
+                $("#category_id").val(category_id);
+            }
+        },
+        error: function(jqXHR, exception, errorstr) {
+            alert("카테고리 조회에 실패하였습니다. API_KEY를 다시 확인해주세요.");
+            console.log(jqXHR);
+        }
+    });
+}
 
 $("#auth_btn").click(function (){
     var auth_url = "https://accounts.google.com/o/oauth2/auth?";
@@ -61,7 +129,6 @@ $("#last_auth_btn").click(function (e){
     $.ajax({
         type:"POST",
         url:auth_url,
-        dataType : 'json',
         data: {
             code:tempAuthCode,
             client_id:$("#client_id").val(),
@@ -97,7 +164,6 @@ $("#token_refresh_btn").click(function (e){
             redirect_uri:encodeURI($("#redirect_uri").val()),
             grant_type:'refresh_token'
         },
-        dataType: "json",
         contentType:"application/x-www-form-urlencoded; charset=utf-8",
         success:function(data) {
             $("#access_token").val(data.access_token);
