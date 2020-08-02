@@ -113,7 +113,9 @@ class LogicNormal(object):
     @staticmethod
     def youtube_upload(upload_path, complete_path, client_id, client_secret, refresh_token, category_id, privacy_status):
         logger.debug("=========== youtube_upload() START ===========")
-
+        #완료 폴더 없는 경우 생성
+        if not os.path.isdir(complete_path): 
+            os.makedirs(complete_path)
         #전달받은 path 경로에 / 없는 경우 예외처리
         if upload_path.rfind("/")+1 != len(upload_path):
             upload_path = upload_path+'/'
