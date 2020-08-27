@@ -146,7 +146,9 @@ class LogicNormal(object):
         exclude = ['@eaDir']
         #이동할 파일 조회(파일, 폴더내 파일)
         fileList = os.listdir(upload_path)
+        #logger.debug("upload_path : %s", upload_path)
         for file in fileList:
+            logger.debug("file : %s", upload_path+file)
             mvBool = True
             for ex in exclude:
                 #시스템폴더 패스
@@ -183,6 +185,6 @@ class LogicNormal(object):
                     logger.debug("video.id : %s", response["id"])
                     #sucess upload -> file_move
                     shutil.move(upload_path+file, complete_path+file)
-
+                    time.sleep(3)
                     
         logger.debug("=========== youtube_upload() END ===========")
