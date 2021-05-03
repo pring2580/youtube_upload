@@ -38,8 +38,11 @@ except ImportError as e:
 import googleapiclient.discovery
 import googleapiclient.errors
 import requests
-#from urlparse import urlparse
-from urllib.parse import urlparse
+
+try:
+    from urlparse import urlparse
+except ImportError as e:
+    from urllib.parse import urlparse
 import json
 from googleapiclient.http import MediaFileUpload
 import httplib2
