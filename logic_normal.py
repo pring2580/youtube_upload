@@ -3,7 +3,7 @@
 # python
 import os
 import sys
-sys.setdefaultencoding('utf-8')
+#sys.setdefaultencoding('utf-8')
 import datetime
 import traceback
 import threading
